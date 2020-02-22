@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Bid</title>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.0.0-beta.36/dist/web3.min.js"></script>
+	<script type="text/javascript">
+		function getCookie(name) {
+			var cookieValue = null;
+			if (document.cookie && document.cookie != '') {
+				var cookies = document.cookie.split(';');
+				for (var i = 0; i < cookies.length; i++) {
+					var cookie = jQuery.trim(cookies[i]);
+					// Does this cookie string begin with the name we want?
+					if (cookie.substring(0, name.length + 1) == (name + '=')) {
+						cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+						break;
+					}
+				}
+			}
+			return cookieValue;
+		}
+
+		var csrftoken = getCookie('csrftoken');
+		function csrfSafeMethod(method) {
+			return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+		}
+
+		$.ajaxSetup({
+			beforeSend: function(xhr, settings) {
+				if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+					xhr.setRequestHeader("X-CSRFToken", csrftoken);
+				}
+			}
+		});
+	</script>
+</head>
+<body>
+	<h1> Artwork : {{auction.art_id}} </h1>
+	{% if auction.highest_bid >= auction.base_price %}
+		<h3> Current Bidding Price: {{auction.highest_bid}} </h3>
+	{% else %}
+		<h3> Bidding Not Started </h3>
+		<h3> Starting Price: {{auction.base_price}} </h3>
+	{% endif %}
+	<input type="text" id="bid_value" required></input>
+	<button type="button" id="bid">Bid</button>
+	<script type="text/javascript">
+		$("#bid").click(function(){
+			var bid_value = document.getElementById("bid_value").value;
+			if(bid_value==""){
+				alert("Please, Fill Input Field")
+			}
+			else{
+				console.log(bid_value);
+				document.getElementById("bid_value").value="";
+				var balance;
+    	
+			    if (typeof web3 !== 'undefined') {
+
+			        //initiating web3 object
+			        web3 = new Web3(web3.currentProvider);
+			        window.ethereum.enable();
+			        web3.eth.getAccounts().then(function(accounts){
+		                var acc = accounts[0];
+		                console.log(acc);
+		                web3.eth.getBalance(acc, function (error, wei) {
+    						if (!error) {
+        						balance = web3.utils.fromWei(wei, 'ether');
+        						console.log(balance + " ETH");
+        						if((("{{auction.highest_bid}}"==0 && bid_value >="{{auction.base_price}}") || (bid_value > "{{auction.highest_bid}}")) && balance>=bid_value) {
+        							var id = "{{auction.pk}}";
+        							$.ajax({
+										url: "/auction/users/"+id+"/",
+										type: "put", // or "get"
+										dataType: 'json',
+										contentType: 'application/json',
+										data:JSON.stringify({'art_id':"{{auction.art_id}}",'highest_bid':bid_value,'highest_bidder':acc,'owner':"{{auction.owner}}",'base_price':"{{auction.base_price}}",'csrfmiddlewaretoken': '{{csrf_token}}'}),
+										success: function(data) { 
+
+					                }});
+					                setTimeout("location.reload(true);",0);
+					            }
+					            else{
+					            	alert("Insufficient balance Or Inappropriate bid");
+					            }
+    						}
+						});
+		            })
+		            
+
+				}
+			}
+		})
+	</script>
+</body>
+</html>

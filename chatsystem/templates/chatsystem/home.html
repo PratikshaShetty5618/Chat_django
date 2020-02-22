@@ -1,0 +1,510 @@
+{% load static %}
+{% csrf_token %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>One Click Login</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"></script>
+<script type="text/javascript">
+	function getCookie(name) {
+  var cookieValue = null;
+  if (document.cookie && document.cookie != '') {
+    var cookies = document.cookie.split(';');
+    for (var i = 0; i < cookies.length; i++) {
+      var cookie = jQuery.trim(cookies[i]);
+      // Does this cookie string begin with the name we want?
+      if (cookie.substring(0, name.length + 1) == (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
+var csrftoken = getCookie('csrftoken');
+function csrfSafeMethod(method) {
+   return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+}
+
+$.ajaxSetup({
+    beforeSend: function(xhr, settings) {
+       if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+           xhr.setRequestHeader("X-CSRFToken", csrftoken);
+     }
+  }
+});
+
+</script>
+</head>
+<body>
+    <div>
+    	{% if login == False %}
+   <button type="button" id="register1" onclick="loginSelf()"> Login Self </button>
+   {% else %}
+   <a href="{% url 'logout' %}"><button type="button"> Logout Self </button></a>
+   {% endif %}
+   {% if login == False %}
+<button type="button" id="register2" onclick="loginOther()"> Login Other </button>
+   {% else %}
+   <a href="{% url 'logout' %}"><button type="button"> Logout Other </button></a>
+   
+   {% endif %}
+        <hr>
+        <input type="text" id="chat"> 
+        <button type="submit" onclick="chatAdd()" id="send">Send</button>
+        <button type="button" onclick="one_party_conf()" id="seal">Seal the Deal</button>
+        <button type="button" onclick="disable_chat()" id="waste">Not Interested</button>
+        <!-- 
+        <input type="text" id="amount">
+        id="balance"></p>
+        <button id="deposit">Deposit</button>
+        <button id="withdraw">Withdraw</button> -->
+        <div class="container">
+        <ul id="myList">
+        </ul>
+        
+      
+        
+      </div>
+    <button><a href="{% url 'auction_button' %}">Go to see if auction is working properly or not</a></button>
+
+    <!-- Ethereum web3 api script -->
+    <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.0.0-beta.36/dist/web3.min.js"></script>
+
+    <script>
+    	function loginSelf() {
+        var contract;
+	    if (typeof web3 !== 'undefined') {
+
+	    	//inisiationg web3 object
+	        web3 = new Web3(web3.currentProvider);
+	        window.ethereum.enable();//require to use metamask
+	        
+            web3.eth.getAccounts().then(function(accounts){
+
+            	var user_address = accounts[0];
+                console.log("currrent account",user_address);
+                var users = function(){
+            var tmp = null;
+            $.ajax({
+              async:false,
+              global:false,
+              url: "/chatsystem/users/",
+              type: "get", 
+              data:[],
+              success: function(data) {
+                tmp = data;
+                console.log(data);
+            }});
+            return tmp;
+          }();
+          var nonce;
+          var id;
+          var flag=false;
+          for(var i=0;i<users.length;i++){
+            if(users[i]['public_address']==user_address){
+              flag=true;
+              nonce = users[i]['nonce'];
+              id = users[i]['id']
+              break;
+            }
+          }
+          if(flag==true){
+            	var message = nonce;
+	       		var msg_hash = web3.utils.sha3(message);
+	       	
+			}	
+			else{
+            nonce=function(){
+              var text = "";
+              var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+              for(var i=0;i<5;i++){
+                text+=possible.charAt(Math.floor(Math.random() * possible.length));
+              }
+              return text;
+            }();
+            id = function(){
+              var tmp =null;
+              console.log(user_address);
+              $.ajax({
+                async:false,
+                global:false,
+                url: "/chatsystem/users/",
+                type: "post", 
+                data: JSON.stringify({'public_address':user_address,'nonce':nonce,'csrfmiddlewaretoken': '{{csrf_token}}'}),
+                error: function (request, error) {
+                      console.log(arguments);
+                      alert(" Can't do because: " + error);
+                  },
+                  dataType: "json",
+                contentType: "application/json",
+                success: function(data) {
+                  tmp = data['id'];
+              }});
+              return tmp;
+            }();
+            var message = nonce
+            var msg_hash = web3.utils.sha3(message);
+          }	
+
+				//signing the message with metamask account
+				var result = web3.eth.sign(msg_hash,user_address,function(err,res){
+					console.log("Signature",res);
+					var signature = res;
+					// console.log(signature.slice(2))
+
+					//contract verification
+					var contract_address = "0xEB7C568d79452C6d388411916A5943f6CbD0fbfb";
+            		var veri_abi = [
+									{
+										"constant": true,
+										"inputs": [
+											{
+												"name": "hash",
+												"type": "bytes32"
+											},
+											{
+												"name": "signature",
+												"type": "bytes"
+											}
+										],
+										"name": "recover",
+										"outputs": [
+											{
+												"name": "",
+												"type": "address"
+											}
+										],
+										"payable": false,
+										"stateMutability": "pure",
+										"type": "function"
+									}
+								]
+					contract = new web3.eth.Contract(veri_abi,contract_address);
+
+
+					// var r = `0x${signature.slice(0, 64)}`
+		   			//var s = `0x${signature.slice(64, 128)}`
+		   			//var v = web3.utils.toDecimal(signature.slice(128, 130)) + 27
+		  	 		//console.log(typeof(r),s,v)
+   					// console.log(typeof(msg_hash),typeof(signature))
+
+   					//recovering public address from signed signature to verify the user
+            		contract.methods.recover(msg_hash,web3.utils.hexToBytes(signature)).call().then(function(addr){
+            		// console.log(web3.utils.isAddress(addr));
+	                	//$('#address').html(addr);
+	                	if(addr == user_address){
+	                		alert("User Verified\r\n"+"Address of user: "+addr);
+                      nonce=function(){
+                      var text = "";
+                      var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+                      for(var i=0;i<5;i++){
+                        text+=possible.charAt(Math.floor(Math.random() * possible.length));
+                      }
+                      return text;
+                    }();
+                    $.ajax({
+                  url: "/chatsystem/users/"+id+"/",
+                  type: "put", // or "get"
+                  dataType: 'json',
+                  contentType: 'application/json',
+                  data:JSON.stringify({'public_address':user_address,'nonce':nonce,'csrfmiddlewaretoken': '{{csrf_token}}'}),
+                  success: function(data) { 
+
+                 }});
+                    $.ajax({
+                      url: "/chatsystem/login/"+id+"/",
+                      type: "post",
+                      contentType: 'application/json',
+                      data:JSON.stringify({'public_address':user_address,'nonce':nonce,'csrfmiddlewaretoken': '{{csrf_token}}'}),
+                      error: function (request, error) {
+                      console.log(arguments);
+                      alert(" Can't do because: " + error);
+                  },
+                    success: function(data) { 
+                    $('register1').hide();  
+                    document.getElementById('register1').style.visibility = 'hidden';
+                    $('register2').hide();  
+                    document.getElementById('register2').style.visibility = 'hidden';
+                    $('register3').hide();  
+                    document.getElementById('register3').style.visibility = 'hidden';
+                 }
+                    });
+                    setTimeout("location.reload(true);",0);
+                    }else{
+                      alert("User Not Verified");
+                    }
+	              })//verify using smart contract
+			})//signing end
+        });//account block end
+
+	} //end of if
+}
+function loginOther() {
+            	var user_address = "0xc69617F88b16eAaABE60830042A616351aCB6828"; //Altaf
+            	//var user_address = "0x864ab1219207A107dC54b3283545a7a69CE71557"; //Pratiksha
+              //var user_address = "0x5809dA96ffa727b3A716e2cA6EEf6F1218E82B69";  //Aachal
+
+                // console.log("currrent account",user_address);
+                var users = function(){
+            var tmp = null;
+            $.ajax({
+              async:false,
+              global:false,
+              url: "/chatsystem/users/",
+              type: "get", 
+              data:[],
+              success: function(data) {
+                tmp = data;
+                console.log(data);
+            }});
+            return tmp;
+          }();
+          var nonce;
+          var id;
+          var flag=false;
+          for(var i=0;i<users.length;i++){
+            if(users[i]['public_address']==user_address){
+              flag=true;
+              nonce = users[i]['nonce'];
+              id = users[i]['id']
+              break;
+            }
+          }
+          
+			
+	       alert("User Verified\r\n"+"Address of user: "+user_address);
+                      nonce=function(){
+                      var text = "";
+                      var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+                      for(var i=0;i<5;i++){
+                        text+=possible.charAt(Math.floor(Math.random() * possible.length));
+                      }
+                      return text;
+                    }();
+                    $.ajax({
+                  url: "/chatsystem/users/"+id+"/",
+                  type: "put", // or "get"
+                  dataType: 'json',
+                  contentType: 'application/json',
+                  data:JSON.stringify({'public_address':user_address,'nonce':nonce,'csrfmiddlewaretoken': '{{csrf_token}}'}),
+                  success: function(data) { 
+
+                 }});
+                    $.ajax({
+                      url: "/chatsystem/login/"+id+"/",
+                      type: "post",
+                      contentType: 'application/json',
+                      data:JSON.stringify({'public_address':user_address,'nonce':nonce,'csrfmiddlewaretoken': '{{csrf_token}}'}),
+                      error: function (request, error) {
+                      console.log(arguments);
+                      alert(" Can't do because: " + error);
+                  },
+       
+                    });
+                    setTimeout("location.reload(true);",0);
+                    
+
+}
+function chatAdd(){
+	
+  var sender = "{{user_address}}";
+  console.log(sender);
+  //var receiver = "0x864ab1219207A107dC54b3283545a7a69CE71557"; //Pratiksha
+  //var receiver = "0x5809dA96ffa727b3A716e2cA6EEf6F1218E82B69";  //Aachal
+  var receiver = "0xc69617F88b16eAaABE60830042A616351aCB6828";    //Altaf
+  var art_id = 1;
+  var message = document.getElementById("chat").value;
+  if (sender!="0"){
+  $.ajax({
+                      url: "/chatsystem/chats/",
+                      type: "post",
+                      contentType: 'application/json',
+                      data:JSON.stringify({'sender':sender,'receiver':receiver,'art_id':art_id,'message':message,'csrfmiddlewaretoken': '{{csrf_token}}'}),
+                      error: function (request, error) {
+                      console.log(arguments);
+                      alert(" Can't do because: " + error);
+                      },
+                      success: function(data){
+                        console.log(data);
+                      }
+});
+
+  }
+  else{
+    alert('Please, Login');		}
+  }
+var interval_id = 0;
+window.setInterval(function(){ 
+    var chats = function(){
+            var tmp = null;
+            $.ajax({
+              async:false,
+              global:false,
+              url: "/chatsystem/chats/",
+              type: "get", 
+              data:[],
+              success: function(data) {
+                tmp = data;
+                console.log(data);
+            }});
+            return tmp;
+          }();
+    console.log("{{user_address}}");
+    for(var i=0;i<chats.length;i++){
+      if(chats[i]['id']>interval_id){
+        if(chats[i]['status_sender']=="false" && chats[i]['status_receiver']=="false"){
+        if(chats[i]['sender']=="{{user_address}}" && chats[i]['art_id']==1 ){
+          $('#myList').append('<li>'+'--------------------------'+chats[i]['message']+'</li>');
+        }
+        else if(chats[i]['receiver']=="{{user_address}}" && chats[i]['art_id']==1){
+          $('#myList').append('<li>'+chats[i]['message']+'</li>');
+          console.log("Here");
+        }
+        // else if(chats[i]['status_sender']=="true" && chats[i]['sender']=="{{user_address}}"){
+        //   $("#send").attr("disabled", true);
+        // }
+      
+    }
+    else if(chats[i]['status_sender'] == "true" && chats[i]['status_receiver']=="false"){
+      if(chats[i]['sender']=="{{user_address}}" && chats[i]['art_id']==1 ){
+          $('#myList').append('<li>'+'--------------------------'+chats[i]['message']+'</li>');
+          $("#send").attr("disabled", true);
+          $("#seal").attr("disabled", true);
+        }
+        else if(chats[i]['receiver']=="{{user_address}}" && chats[i]['art_id']==1){
+          $('#myList').append('<li>'+chats[i]['message']+'</li>');
+      
+        }
+    }
+    else if(chats[i]['status_sender'] == "false" && chats[i]['status_receiver']=="true"){
+      if(chats[i]['sender']=="{{user_address}}" && chats[i]['art_id']==1 ){
+          $('#myList').append('<li>'+'--------------------------'+chats[i]['message']+'</li>');
+        }
+        else if(chats[i]['receiver']=="{{user_address}}" && chats[i]['art_id']==1){
+          $('#myList').append('<li>'+chats[i]['message']+'</li>');
+          $("#send").attr("disabled", true);
+          $("#seal").attr("disabled", true);
+        }
+    }
+    else if(chats[i]['status_sender'] == "true" && chats[i]['status_receiver']=="true"){
+      $.ajax({
+                url: "/chatsystem/chats/"+chats[i]['id']+"/",
+                type: "DELETE",
+                dataType: "json",
+                beforeSend: function (xhr) {
+                    xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+                },
+                success: function () {
+                    console.log("Deleted data successfully");
+                    $('#myList').empty();
+                    setTimeout("location.reload(true);",0);
+                },
+                error: function () {
+                    console.log("Delete failed!");
+                }
+            });
+    }
+
+  }}
+    last_chat = chats.length - 1;
+    console.log(last_chat);
+    interval_id = chats[last_chat]['id'];
+    console.log(interval_id);
+
+
+  }, 2000);
+  function disable_chat(){
+    var chats = function(){
+            var tmp = null;
+            $.ajax({
+              async:false,
+              global:false,
+              url: "/chatsystem/chats/",
+              type: "get", 
+              data:[],
+              success: function(data) {
+                tmp = data;
+                console.log(data);
+            }});
+            return tmp;
+          }();
+          for(var i=0;i<chats.length;i++){
+            if(chats[i]['sender']=="{{user_address}}" || chats[i]['receiver']=="{{user_address}}"){
+              id = chats[i]['id'];
+              $.ajax({
+                url: "/chatsystem/chats/"+id+"/",
+                type: "DELETE",
+                dataType: "json",
+                beforeSend: function (xhr) {
+                    xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+                },
+                success: function () {
+                    console.log("Deleted data successfully");
+                    $('#myList').empty();
+                },
+                error: function () {
+                    console.log("Delete failed!");
+                }
+            });
+            }}
+  }
+  function one_party_conf(){
+
+    var chats = function(){
+            var tmp = null;
+            $.ajax({
+              async:false,
+              global:false,
+              url: "/chatsystem/chats/",
+              type: "get", 
+              data:[],
+              success: function(data) {
+                tmp = data;
+                console.log(data);
+            }});
+            return tmp;
+          }();
+          
+          for(var i=0;i<chats.length;i++){
+            id = chats[i]['id'];
+            if(chats[i]['sender']=="{{user_address}}"){
+
+              $.ajax({
+                  url: "/chatsystem/chats/"+id+"/",
+                  type: "put", // or "get"
+                  dataType: 'json',
+                  contentType: 'application/json',
+                  data:JSON.stringify({'sender':"{{user_address}}",'receiver':chats[i]['receiver'],'art_id':chats[i]['art_id'],'message':chats[i]['message'],'status_sender':'true','status_receiver':chats[i]['status_receiver'],'csrfmiddlewaretoken': '{{csrf_token}}'}),
+                  success: function(data) { 
+
+                 }});
+            }
+            else if(chats[i]['receiver']=="{{user_address}}"){
+              $.ajax({
+                  url: "/chatsystem/chats/"+id+"/",
+                  type: "put", // or "get"
+                  dataType: 'json',
+                  contentType: 'application/json',
+                  data:JSON.stringify({'sender':chats[i]['sender'],'receiver':"{{user_address}}",'art_id':chats[i]['art_id'],'message':chats[i]['message'],'status_sender':chats[i]['status_sender'],'status_receiver':'true','csrfmiddlewaretoken': '{{csrf_token}}'}),
+                  success: function(data) { 
+
+                 }});
+            }
+            
+          }
+          setTimeout("location.reload(true);",0);
+
+  }   
+    </script>
+</body>
+</html>
+
+
+<!-- note -->
+<!-- server pe file run hoti hai tb hi metamask web3 object inject krta hia -->
+<!-- set gas limit = 21000 -->

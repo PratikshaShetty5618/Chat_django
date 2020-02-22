@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Create</title>
+	<script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.0.0-beta.36/dist/web3.min.js"></script>
+</head>
+<body>
+<script type="text/javascript">
+	var contract;
+    
+    if (typeof web3 !== 'undefined') {
+
+        //initiating web3 object
+        web3 = new Web3(web3.currentProvider);
+        window.ethereum.enable();
+        var contract_address = "0xe46b2D8B3A5CCf2dF628468dEe2F3Ec1e85E7A28";
+        var contract_abi = [
+	{
+		"constant": false,
+		"inputs": [
+			{
+				"name": "_artname",
+				"type": "string"
+			},
+			{
+				"name": "_address",
+				"type": "address"
+			},
+			{
+				"name": "_verified",
+				"type": "bool"
+			},
+			{
+				"name": "_auction",
+				"type": "bool"
+			},
+			{
+				"name": "_base_price",
+				"type": "uint256"
+			}
+		],
+		"name": "createArtWork",
+		"outputs": [],
+		"payable": false,
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"constant": false,
+		"inputs": [
+			{
+				"name": "_new_owner",
+				"type": "address"
+			},
+			{
+				"name": "_id",
+				"type": "uint256"
+			}
+		],
+		"name": "updateOwner",
+		"outputs": [],
+		"payable": false,
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"payable": false,
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"constant": true,
+		"inputs": [],
+		"name": "countArtworks",
+		"outputs": [
+			{
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [
+			{
+				"name": "_id",
+				"type": "uint256"
+			}
+		],
+		"name": "getArtwork",
+		"outputs": [
+			{
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"name": "",
+				"type": "string"
+			},
+			{
+				"name": "",
+				"type": "address"
+			},
+			{
+				"name": "",
+				"type": "bool"
+			},
+			{
+				"name": "",
+				"type": "bool"
+			},
+			{
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [],
+		"name": "getArtworks",
+		"outputs": [
+			{
+				"name": "",
+				"type": "uint256[]"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [
+			{
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "ids",
+		"outputs": [
+			{
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	}
+]
+		contract = new web3.eth.Contract(contract_abi,contract_address);
+		var artname = "ABCD"
+		var address = '0x5809dA96ffa727b3A716e2cA6EEf6F1218E82B69'
+		var verified = true
+		var auction = true
+		var base_price = 1;
+		web3.eth.getAccounts().then(function(accounts){
+                var acc = accounts[0];
+                console.log(acc);
+                return contract.methods.createArtWork(artname,address,verified,auction,base_price).send({from:acc});
+            }).then(function(res){
+                console.log(res);
+            }).catch(function(res){
+                console.log(res);
+            })
+        
+        }
+</script>
+</body>
+</html>

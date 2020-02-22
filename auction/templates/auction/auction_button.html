@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Auction_Button</title>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.0.0-beta.36/dist/web3.min.js"></script>
+	<script type="text/javascript">
+		function getCookie(name) {
+			var cookieValue = null;
+			if (document.cookie && document.cookie != '') {
+				var cookies = document.cookie.split(';');
+				for (var i = 0; i < cookies.length; i++) {
+					var cookie = jQuery.trim(cookies[i]);
+					// Does this cookie string begin with the name we want?
+					if (cookie.substring(0, name.length + 1) == (name + '=')) {
+						cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+						break;
+					}
+				}
+			}
+			return cookieValue;
+		}
+
+		var csrftoken = getCookie('csrftoken');
+		function csrfSafeMethod(method) {
+			return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+		}
+
+		$.ajaxSetup({
+			beforeSend: function(xhr, settings) {
+				if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+					xhr.setRequestHeader("X-CSRFToken", csrftoken);
+				}
+			}
+		});
+	</script>
+</head>
+<body>
+	<a href = "{% url 'auction_list' %}"><button type="button" id="auction_button">Live Auction</button></a>
+	<script type="text/javascript">
+		document.getElementById("auction_button").style.display = "none";
+		var today = new Date();
+		if (today.getDate() == 22){
+			document.getElementById("auction_button").style.display = "block";
+			var users = function(){
+	            var tmp = null;
+	            $.ajax({
+	              async:false,
+	              global:false,
+	              url: "/auction/users/",
+	              type: "get", 
+	              data:[],
+	              success: function(data) {
+	                tmp = data;
+	            }});
+	            return tmp;
+          	}();
+          	if (!$.trim(users)){
+          		var contract;
+    
+		        if (typeof web3 !== 'undefined') {
+
+		            //initiating web3 object
+		            web3 = new Web3(web3.currentProvider);
+		            window.ethereum.enable();
+		            var contract_address = "0xe46b2D8B3A5CCf2dF628468dEe2F3Ec1e85E7A28";
+		            var contract_abi = [
+						{
+							"constant": false,
+							"inputs": [
+								{
+									"name": "_artname",
+									"type": "string"
+								},
+								{
+									"name": "_address",
+									"type": "address"
+								},
+								{
+									"name": "_verified",
+									"type": "bool"
+								},
+								{
+									"name": "_auction",
+									"type": "bool"
+								},
+								{
+									"name": "_base_price",
+									"type": "uint256"
+								}
+							],
+							"name": "createArtWork",
+							"outputs": [],
+							"payable": false,
+							"stateMutability": "nonpayable",
+							"type": "function"
+						},
+						{
+							"constant": false,
+							"inputs": [
+								{
+									"name": "_new_owner",
+									"type": "address"
+								},
+								{
+									"name": "_id",
+									"type": "uint256"
+								}
+							],
+							"name": "updateOwner",
+							"outputs": [],
+							"payable": false,
+							"stateMutability": "nonpayable",
+							"type": "function"
+						},
+						{
+							"inputs": [],
+							"payable": false,
+							"stateMutability": "nonpayable",
+							"type": "constructor"
+						},
+						{
+							"constant": true,
+							"inputs": [],
+							"name": "countArtworks",
+							"outputs": [
+								{
+									"name": "",
+									"type": "uint256"
+								}
+							],
+							"payable": false,
+							"stateMutability": "view",
+							"type": "function"
+						},
+						{
+							"constant": true,
+							"inputs": [
+								{
+									"name": "_id",
+									"type": "uint256"
+								}
+							],
+							"name": "getArtwork",
+							"outputs": [
+								{
+									"name": "",
+									"type": "uint256"
+								},
+								{
+									"name": "",
+									"type": "string"
+								},
+								{
+									"name": "",
+									"type": "address"
+								},
+								{
+									"name": "",
+									"type": "bool"
+								},
+								{
+									"name": "",
+									"type": "bool"
+								},
+								{
+									"name": "",
+									"type": "uint256"
+								}
+							],
+							"payable": false,
+							"stateMutability": "view",
+							"type": "function"
+						},
+						{
+							"constant": true,
+							"inputs": [],
+							"name": "getArtworks",
+							"outputs": [
+								{
+									"name": "",
+									"type": "uint256[]"
+								}
+							],
+							"payable": false,
+							"stateMutability": "view",
+							"type": "function"
+						},
+						{
+							"constant": true,
+							"inputs": [
+								{
+									"name": "",
+									"type": "uint256"
+								}
+							],
+							"name": "ids",
+							"outputs": [
+								{
+									"name": "",
+									"type": "uint256"
+								}
+							],
+							"payable": false,
+							"stateMutability": "view",
+							"type": "function"
+						}
+					]
+					contract = new web3.eth.Contract(contract_abi,contract_address);
+
+		            contract.methods.getArtworks().call().then(function(ids){
+		                console.log(typeof(Number(ids[0])));
+		                ids.forEach(function(id) {
+	                    	console.log(id);
+	                    	contract.methods.getArtwork(Number(id)).call().then(function(artwork){
+	                        	if(artwork[3]==true && artwork[4]==true){
+	                        		$.ajax({
+										url: "/auction/users/",
+										type: "post", 
+										data: JSON.stringify({'art_id':artwork[0],'owner':artwork[2],'base_price':artwork[5],'csrfmiddlewaretoken': '{{csrf_token}}'}),
+										error: function (request, error) {
+										      console.log(arguments);
+										      alert(" Can't do because: " + error);
+										},
+										dataType: "json",
+										contentType: "application/json",
+										success: function(data) {
+											console.log(data);
+									}});
+	                        	}
+	                        
+	                    	})
+	                	})
+            		})
+
+        		}
+          	}
+          	
+		}
+		else if(today.getDate() == 23){
+			var users = function(){
+	            var tmp = null;
+	            $.ajax({
+	              async:false,
+	              global:false,
+	              url: "/auction/users/",
+	              type: "get", 
+	              data:[],
+	              success: function(data) {
+	                tmp = data;
+	            }});
+	            return tmp;
+          	}();
+          	console.log(users);
+          	for(var i=0;i<users.length;i++){
+	            if(users[i]['highest_bid']!=0){
+	            	if (typeof web3 !== 'undefined') {
+
+			    	//inisiationg web3 object
+				        web3 = new Web3(web3.currentProvider);
+				        window.ethereum.enable();
+						web3.eth.sendTransaction({
+				    		from: users[i]['highest_bidder'],
+				    		to: users[i]['owner'],
+				    		value: web3.utils.toWei(users[i]['highest_bid'].toString(), 'ether')
+						})
+						.then(function(receipt){
+
+			    			console.log(receipt);
+			    			var contract_address = "0xe46b2D8B3A5CCf2dF628468dEe2F3Ec1e85E7A28";
+				            var contract_abi = [
+								{
+									"constant": false,
+									"inputs": [
+										{
+											"name": "_artname",
+											"type": "string"
+										},
+										{
+											"name": "_address",
+											"type": "address"
+										},
+										{
+											"name": "_verified",
+											"type": "bool"
+										},
+										{
+											"name": "_auction",
+											"type": "bool"
+										},
+										{
+											"name": "_base_price",
+											"type": "uint256"
+										}
+									],
+									"name": "createArtWork",
+									"outputs": [],
+									"payable": false,
+									"stateMutability": "nonpayable",
+									"type": "function"
+								},
+								{
+									"constant": false,
+									"inputs": [
+										{
+											"name": "_new_owner",
+											"type": "address"
+										},
+										{
+											"name": "_id",
+											"type": "uint256"
+										}
+									],
+									"name": "updateOwner",
+									"outputs": [],
+									"payable": false,
+									"stateMutability": "nonpayable",
+									"type": "function"
+								},
+								{
+									"inputs": [],
+									"payable": false,
+									"stateMutability": "nonpayable",
+									"type": "constructor"
+								},
+								{
+									"constant": true,
+									"inputs": [],
+									"name": "countArtworks",
+									"outputs": [
+										{
+											"name": "",
+											"type": "uint256"
+										}
+									],
+									"payable": false,
+									"stateMutability": "view",
+									"type": "function"
+								},
+								{
+									"constant": true,
+									"inputs": [
+										{
+											"name": "_id",
+											"type": "uint256"
+										}
+									],
+									"name": "getArtwork",
+									"outputs": [
+										{
+											"name": "",
+											"type": "uint256"
+										},
+										{
+											"name": "",
+											"type": "string"
+										},
+										{
+											"name": "",
+											"type": "address"
+										},
+										{
+											"name": "",
+											"type": "bool"
+										},
+										{
+											"name": "",
+											"type": "bool"
+										},
+										{
+											"name": "",
+											"type": "uint256"
+										}
+									],
+									"payable": false,
+									"stateMutability": "view",
+									"type": "function"
+								},
+								{
+									"constant": true,
+									"inputs": [],
+									"name": "getArtworks",
+									"outputs": [
+										{
+											"name": "",
+											"type": "uint256[]"
+										}
+									],
+									"payable": false,
+									"stateMutability": "view",
+									"type": "function"
+								},
+								{
+									"constant": true,
+									"inputs": [
+										{
+											"name": "",
+											"type": "uint256"
+										}
+									],
+									"name": "ids",
+									"outputs": [
+										{
+											"name": "",
+											"type": "uint256"
+										}
+									],
+									"payable": false,
+									"stateMutability": "view",
+									"type": "function"
+								}
+							]
+							var contract = new web3.eth.Contract(contract_abi,contract_address);
+							web3.eth.getAccounts().then(function(accounts){
+				                var acc = accounts[0];
+				                console.log(acc);
+				                return contract.methods.updateOwner(users[i]['owner'],users[i]['art_id']).send({from:acc});
+				            }).then(function(res){
+				                console.log(res);
+				            }).catch(function(res){
+				                console.log(res);
+				            })
+				            $.ajax({
+				                url: "/auction/users/"+users[i]['id']+"/",
+				                type: "DELETE",
+				                dataType: "json",
+				                beforeSend: function (xhr) {
+				                    xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+				                },
+				                success: function () {
+				                    console.log("Deleted data successfully");
+				                    setTimeout("location.reload(true);",0);
+				                },
+				                error: function () {
+				                    console.log("Delete failed!");
+				                }
+				            });
+
+
+						}).catch(function(res){
+							alert("Please, Pay the Auction Amount as soon as possible");
+						});
+						
+					}
+	            }
+          	
+	          	
+
+          	}
+
+
+		}
+		
+			
+
+	</script>
+</body>
+</html>
